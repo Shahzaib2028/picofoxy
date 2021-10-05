@@ -28,6 +28,8 @@ class Picofoxy(programFile: Option[String]) extends Module {
   io.uart_intr_tx_o := top.io.uart_intr_tx_o
   top.io.uart_rx_i := io.uart_rx_i
 
+}
+
 //   val gpioInputWires = Wire(Vec(4, Bool()))
 //   val gpioOutputWires = Wire(Vec(4, Bool()))
 //   val gpioEnableWires = Wire(Vec(4, Bool()))
@@ -117,7 +119,7 @@ class Top(programFile: Option[String]) extends Module {
   core.io.irq_external_i := false.B
 
 
-}
+
 }
 object PicofoxyDriver extends App {
   (new ChiselStage).emitVerilog(new Picofoxy(None))

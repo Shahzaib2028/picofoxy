@@ -5,7 +5,7 @@ import chiseltest.ChiselScalatestTester
 import chiseltest.internal.VerilatorBackendAnnotation
 import chiseltest.experimental.TestOptionBuilder._
 import org.scalatest.FreeSpec
-
+// import Top._
 class TopTest extends FreeSpec with ChiselScalatestTester {
   def getFile: Option[String] = {
     if (scalaTestContext.value.get.configMap.contains("memFile")) {

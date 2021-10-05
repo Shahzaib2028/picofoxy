@@ -6,11 +6,16 @@ import chisel3.experimental.Analog
 import chisel3.stage.ChiselStage
 import jigsaw.fpga.boards.artyA7._
 import jigsaw.rams.fpga.BlockRam
-import jigsaw.peripherals.gpio._
-
+//import jigsaw.peripherals.gpio._
+import UART.UARTWrapper
+ 
 class Picofoxy(programFile: Option[String]) extends Module {
-  val io = IO(new Bundle {
-    val gpio_io = Vec(4, Analog(1.W))
+  val io = IO(new Bundle{
+        
+    //val gpio_io = Vec(4, Analog(1.W))
+    val uart_tx_o = Output(Bool())
+    val uart_intr_tx_o = Output(Bool())
+    val uart_rx_i = Input(Bool())
   })
 
   val top = Module(new Top(programFile))
@@ -19,31 +24,35 @@ class Picofoxy(programFile: Option[String]) extends Module {
   pll.io.clk_in1 := clock
   top.clock := pll.io.clk_out1
 
-  val gpioInputWires = Wire(Vec(4, Bool()))
-  val gpioOutputWires = Wire(Vec(4, Bool()))
-  val gpioEnableWires = Wire(Vec(4, Bool()))
+  io.uart_tx_o := top.io.uart_tx_o
+  io.uart_intr_tx_o := top.io.uart_intr_tx_o
+  top.io.uart_rx_i := io.uart_rx_i
 
-  val gpioPads = TriStateBuffer(quantity=4)
-  val triStateBufferWires = for {
-    ((((a,b),c),d),e) <- gpioPads zip gpioInputWires zip gpioOutputWires zip gpioEnableWires zip io.gpio_io
-  } yield (a,b,c,d,e)
+//   val gpioInputWires = Wire(Vec(4, Bool()))
+//   val gpioOutputWires = Wire(Vec(4, Bool()))
+//   val gpioEnableWires = Wire(Vec(4, Bool()))
 
-  triStateBufferWires map { case(buf: IOBUF, in: Bool, out: Bool, en: Bool, io: Analog) => {
-    buf.io.connect(in, out, io, en)
-  }}
+//   val gpioPads = TriStateBuffer(quantity=4)
+//   val triStateBufferWires = for {
+//     ((((a,b),c),d),e) <- gpioPads zip gpioInputWires zip gpioOutputWires zip gpioEnableWires zip io.gpio_io
+//   } yield (a,b,c,d,e)
 
-  top.io.gpio_i := gpioInputWires.asUInt()
-  gpioOutputWires := top.io.gpio_o.asBools()
-  gpioEnableWires := top.io.gpio_en_o.asBools()
+//   triStateBufferWires map { case(buf: IOBUF, in: Bool, out: Bool, en: Bool, io: Analog) => {
+//     buf.io.connect(in, out, io, en)
+//   }}
 
-}
+//   top.io.gpio_i := gpioInputWires.asUInt()
+//   gpioOutputWires := top.io.gpio_o.asBools()
+//   gpioEnableWires := top.io.gpio_en_o.asBools()
+
+// }
 
 
 class Top(programFile: Option[String]) extends Module {
   val io = IO(new Bundle {
-    val gpio_o = Output(UInt(4.W))
-    val gpio_en_o = Output(UInt(4.W))
-    val gpio_i = Input(UInt(4.W))
+    val uart_tx_o = Output(Bool())
+    val uart_intr_tx_o = Output(Bool())
+    val uart_rx_i = Input(Bool())
     //val gpio_intr_o = Output(UInt(32.W))
   })
 
@@ -52,10 +61,10 @@ class Top(programFile: Option[String]) extends Module {
   val wb_imem_slave = Module(new WishboneDevice())
   val wb_dmem_host = Module(new WishboneHost())
   val wb_dmem_slave = Module(new WishboneDevice())
-  val wb_gpio_slave = Module(new WishboneDevice())
+  val wb_uart_slave = Module(new WishboneDevice())
   val imem = Module(BlockRam.createNonMaskableRAM(programFile, bus=config, rows=1024))
   val dmem = Module(BlockRam.createMaskableRAM(bus=config, rows=1024))
-  val gpio = Module(new Gpio(new WBRequest(), new WBResponse()))
+  val uart = Module(new UARTWrapper(new WBRequest(), new WBResponse()))
   val wbErr = Module(new WishboneErr())
   val core = Module(new Core())
 
@@ -63,7 +72,7 @@ class Top(programFile: Option[String]) extends Module {
 
   val addressMap = new AddressMap
   addressMap.addDevice(Peripherals.DCCM, "h40000000".U(32.W), "h00000FFF".U(32.W), wb_dmem_slave)
-  addressMap.addDevice(Peripherals.GPIO, "h40001000".U(32.W), "h00000FFF".U(32.W), wb_gpio_slave)
+  addressMap.addDevice(Peripherals.GPIO, "h40001000".U(32.W), "h00000FFF".U(32.W), wb_uart_slave)
   val devices = addressMap.getDevices
 
   val switch = Module(new Switch1toN(new WishboneMaster(), new WishboneSlave(), devices.size))
@@ -97,19 +106,19 @@ class Top(programFile: Option[String]) extends Module {
   switch.io.devSel := BusDecoder.decode(wb_dmem_host.io.wbMasterTransmitter.bits.adr, addressMap)
 
 
-  wb_gpio_slave.io.reqOut <> gpio.io.req
-  wb_gpio_slave.io.rspIn <> gpio.io.rsp
+  wb_uart_slave.io.reqOut <> uart.io.request
+  wb_uart_slave.io.rspIn <> uart.io.response
 
-  io.gpio_o := gpio.io.cio_gpio_o(3,0)
-  io.gpio_en_o := gpio.io.cio_gpio_en_o(3,0)
-  gpio.io.cio_gpio_i := io.gpio_i
+  io.uart_tx_o := uart.io.cio_uart_tx_o
+  io.uart_intr_tx_o := uart.io.cio_uart_intr_tx_o
+  uart.io.cio_uart_rx_i := io.uart_rx_i
 
   core.io.stall_core_i := false.B
   core.io.irq_external_i := false.B
 
 
 }
-
+}
 object PicofoxyDriver extends App {
   (new ChiselStage).emitVerilog(new Picofoxy(None))
 }

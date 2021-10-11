@@ -6,8 +6,8 @@ import chisel3.experimental.Analog
 import chisel3.stage.ChiselStage
 import jigsaw.fpga.boards.artyA7._
 import jigsaw.rams.fpga.BlockRam
-//import jigsaw.peripherals.gpio._
-import UART.UARTWrapper
+import jigsaw.peripherals.UART.UARTWrapper
+//import UART.UARTWrapper
  
 class Picofoxy(programFile: Option[String]) extends Module {
   val io = IO(new Bundle{

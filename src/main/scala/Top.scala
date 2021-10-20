@@ -16,7 +16,7 @@ class Picofoxy(programFile: Option[String]) extends Module {
     val uart_tx_o = Output(Bool())
     val uart_intr_tx_o = Output(Bool())
     val uart_rx_i = Input(Bool())
-  })
+  }) 
 
   val top = Module(new Top(programFile))
   val pll = Module(new PLL_8MHz())

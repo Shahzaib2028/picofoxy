@@ -27,10 +27,16 @@ class UARTWrapper(val req:AbstrRequest, val rsp:AbstrResponse)(implicit val conf
 
         io.request.ready := 1.B
 
-        io.response.bits.dataResponse := uart.io.rdata
-        io.response.valid := 1.B
+        //io.response.bits.dataResponse := uart.io.rdata
+        //io.response.valid := 1.B
 
-        io.response.bits.error := uart.io.intr_tx
+        io.response.bits.dataResponse := RegNext(Mux(io.response.ready , uart.io.rdata , 0.U))
+        io.response.valid := RegNext(io.request.valid)
+
+        //io.response.bits.error := uart.io.intr_tx
+
+        io.response.bits.error := RegNext(Mux(io.response.ready , uart.io.intr_tx , 0.U))
+
 
         io.cio_uart_intr_tx_o := uart.io.intr_tx
         io.cio_uart_tx_o := uart.io.tx_o
@@ -52,7 +58,7 @@ class UARTWrapper(val req:AbstrRequest, val rsp:AbstrResponse)(implicit val conf
     // for sending request
     // when(io.request.fire() & io.request.bits.isWrite){                                       // if req is of write
     //     val maskedData = io.request.bits.dataRequest.asTypeOf(Vec(4, UInt(8.W)))            // breaking into Vecs to apply masking
-    //     data := io.request.bits.activeByteLane.asBools zi+p maskedData map {                // applying maskiing a/c to mask bits (activeByteLane)
+    //     data := io.request.bits.activeByteLane.asBools zip maskedData map {                // applying maskiing a/c to mask bits (activeByteLane)
     //         case (b:Bool, i:UInt) => Mux(b, i, 0.U)
     //     }
 

@@ -6,8 +6,8 @@ import chisel3.experimental.Analog
 import chisel3.stage.ChiselStage
 import jigsaw.fpga.boards.artyA7._
 import jigsaw.rams.fpga.BlockRam
-import jigsaw.peripherals.UART.UARTWrapper
-//import UART.UARTWrapper
+import jigsaw.peripherals.UART._
+
  
 class Picofoxy(programFile: Option[String]) extends Module {
   val io = IO(new Bundle{
@@ -66,7 +66,7 @@ class Top(programFile: Option[String]) extends Module {
   val wb_uart_slave = Module(new WishboneDevice())
   val imem = Module(BlockRam.createNonMaskableRAM(programFile, bus=config, rows=1024))
   val dmem = Module(BlockRam.createMaskableRAM(bus=config, rows=1024))
-  val uart = Module(new UARTWrapper(new WBRequest(), new WBResponse()))
+  val uart = Module(new uart(new WBRequest(), new WBResponse()))
   val wbErr = Module(new WishboneErr())
   val core = Module(new Core())
 
